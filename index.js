@@ -104,7 +104,7 @@ function scheduleReconnect(reason) {
 
   const delay = retryDelay();
 
-  tg(`🔁 Reconnect scheduled in ${Math.round(delay / 1000)}s\nReason: ${reason}`);
+  tg(`🔁 Повторное подключение запланировано через ${Math.round(delay / 1000)}s\nПричина: ${reason}`);
 
   retryTimer = setTimeout(() => {
     retryTimer = null;
@@ -143,7 +143,7 @@ function login() {
   loggingIn = true;
 
   try {
-    tg("🔐 Logging into Steam...");
+    tg("🔐 Вход в Steam...");
 
     client.logOn({
       accountName: ACCOUNT_NAME,
@@ -163,7 +163,7 @@ client.on("loggedOn", () => {
   loggingIn = false;
   resetRetry();
 
-  tg(`✅ Logged into Steam as ${client.steamID}`);
+  tg(`✅ Вошел в Steam как ${client.steamID}`);
   farm(true);
 });
 
@@ -172,9 +172,9 @@ client.on("playingState", (blocked) => {
 
   if (blocked) {
     stopFarming();
-    tg("🎮 You started playing. Bot paused farming.");
+    tg("🎮 Вы начали играть. Бот приостановил фарм.");
   } else {
-    tg("✅ Your game session ended. Bot resuming farming.");
+    tg("✅ Ваша игровая сессия завершилась. Бот возобновляет фарм.");
     farm(true);
   }
 });
@@ -190,7 +190,7 @@ client.on("error", (err) => {
 });
 
 client.on("steamGuard", () => {
-  tg("⚠️ Steam Guard requested. Check SHARED_SECRET.");
+  tg("⚠️ Запрос на использование Steam Guard. Проверьте ваш SHARED_SECRET.");
 });
 
 setInterval(() => {
@@ -224,5 +224,5 @@ http
     );
   })
   .listen(PORT, () => {
-    tg(`🚀 Healthcheck server started on port ${PORT}`);
+    tg(`🚀 Сервер проверки работоспособности запущен на порту ${PORT}`);
   });
