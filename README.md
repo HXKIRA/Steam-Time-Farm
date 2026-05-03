@@ -37,7 +37,6 @@ Set them in Railway → **Service → Variables**
 | `STEAM_DATA_DIR` | Session storage path (do not change) | `/data/SteamData` |
 | `PERSONA` | Steam status (1 = Online) | `1` |
 
----
 
 ### Optional (Telegram)
 
