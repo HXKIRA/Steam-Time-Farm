@@ -55,7 +55,7 @@ From `.maFile`:
 
 Use only the value.
 
-[https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-sozdan](Guide)
+[Guide](https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-sozdan)
 
 
 ## 🤖 Telegram Setup
