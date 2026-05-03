@@ -9,6 +9,7 @@ play, and sends logs to Telegram.
 > account.
 
 
+
 ## ✨ Features
 
 -   Farm hours in Steam games (AppID)
@@ -18,6 +19,7 @@ play, and sends logs to Telegram.
 -   Waits before reconnecting (safe behavior)
 -   Telegram logs
 -   Ready for Railway
+
 
 
 ## ⚙️ Environment Variables
@@ -39,12 +41,14 @@ PERSONA=1`
 TG_CHAT_ID=your_chat_id`
 
 
+
 ## 🎮 Games Format
 
 `GAMES=730,440,4000`
 
 How to find AppID:\
 https://steamcommunity.com/app/240 → 240 = AppID
+
 
 
 ## 🔑 Getting SHARED_SECRET
@@ -58,6 +62,7 @@ Use only the value.
 [Guide](https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-sozdan)
 
 
+
 ## 🤖 Telegram Setup
 
 1.  Create bot via @BotFather\
@@ -66,12 +71,14 @@ Use only the value.
     https://api.telegram.org/botYOUR_TOKEN/getUpdates
 
 
+
 ## 🚀 Deploy
 
-1.  Push to GitHub\
-2.  Deploy in Railway\
-3.  Add variables\
+1.  Push to GitHub
+2.  Deploy in [Railway](https://railway.com/)
+3.  Add variables
 4.  Redeploy
+
 
 
 ## 💬 Behavior
@@ -88,7 +95,3 @@ No logs → check token/chat_id
 
 Test: https://api.telegram.org/botTOKEN/getMe
 
-
-## 🔒 Security
-
-Never share: - password - shared_secret - bot token
