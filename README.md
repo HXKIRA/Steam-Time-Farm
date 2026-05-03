@@ -28,10 +28,6 @@ Set them in Railway → **Service → Variables**
 
 ### Required
 
-## ⚙️ Environment Variables
-
-### Required
-
 | Variable | Description | Example |
 |--------|------------|--------|
 | `ACCOUNT_NAME` | Your Steam login (not nickname) | `your_steam_login` |
