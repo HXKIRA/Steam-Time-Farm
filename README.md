@@ -26,22 +26,22 @@ Set them in Railway → **Service → Variables**
 
 ### Required
 
-ACCOUNT_NAME=your_steam_login\
+`ACCOUNT_NAME=your_steam_login\
 PASSWORD=your_steam_password\
 GAMES=730,440\
 SHARED_SECRET=xxxxxxxx\
 STEAM_DATA_DIR=/data/SteamData\
-PERSONA=1
+PERSONA=1`
 
 ### Optional (Telegram)
 
-TG_BOT_TOKEN=your_bot_token\
-TG_CHAT_ID=your_chat_id
+`TG_BOT_TOKEN=your_bot_token\
+TG_CHAT_ID=your_chat_id`
 
 
 ## 🎮 Games Format
 
-GAMES=730,440,4000
+`GAMES=730,440,4000`
 
 How to find AppID:\
 https://steamcommunity.com/app/240 → 240 = AppID
@@ -55,8 +55,7 @@ From `.maFile`:
 
 Use only the value.
 
-Guide:
-https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-sozdan
+[https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-sozdan](Guide)
 
 
 ## 🤖 Telegram Setup
