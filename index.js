@@ -44,9 +44,7 @@ function loadGames() {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const saved = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
-      if (Array.isArray(saved.games) && saved.games.length) {
-        return saved.games;
-      }
+      if (Array.isArray(saved.games) && saved.games.length) return saved.games;
     }
   } catch (_) {}
 
@@ -77,20 +75,21 @@ let userIsProbablyPlaying = false;
 
 let retryAttempt = 0;
 let retryTimer = null;
-let resumeTimer = null;
+let readyTimer = null;
 let lastFarmLogAt = 0;
 let lastKickTime = 0;
-
-// null = сначала пропускаем старые Telegram-команды
 let tgOffset = null;
+
+const notifyCache = new Map();
 
 const MIN_RETRY_MS = 15_000;
 const MAX_RETRY_MS = 10 * 60_000;
 const FARM_INTERVAL_MS = 60_000;
 const WATCHDOG_INTERVAL_MS = 60_000;
 const FARM_LOG_COOLDOWN_MS = 10 * 60_000;
-const RESUME_AFTER_PLAYING_MS = 5 * 60_000;
+const READY_AFTER_PLAYING_MS = 5 * 60_000;
 const KICK_PROTECTION_MS = 10 * 60_000;
+const DUPLICATE_MESSAGE_TTL_MS = 15_000;
 
 function nowRu() {
   return new Date().toLocaleString("ru-RU", {
@@ -129,8 +128,20 @@ async function tg(message) {
   }
 }
 
+async function notifyOnce(key, message, ttlMs = DUPLICATE_MESSAGE_TTL_MS) {
+  const lastAt = notifyCache.get(key) || 0;
+
+  if (Date.now() - lastAt < ttlMs) return;
+
+  notifyCache.set(key, Date.now());
+  await tg(message);
+}
+
 async function initTelegramOffset() {
-  if (!TG_BOT_TOKEN || !TG_CHAT_ID) return;
+  if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
+    tgOffset = 0;
+    return;
+  }
 
   try {
     const res = await fetch(
@@ -138,12 +149,7 @@ async function initTelegramOffset() {
     );
     const data = await res.json();
 
-    if (!data.ok || !Array.isArray(data.result)) {
-      tgOffset = 0;
-      return;
-    }
-
-    if (data.result.length === 0) {
+    if (!data.ok || !Array.isArray(data.result) || data.result.length === 0) {
       tgOffset = 0;
       return;
     }
@@ -198,20 +204,24 @@ function scheduleReconnect(reason) {
   loggingIn = false;
 
   if (!farmingEnabled) {
-    tg(
+    notifyOnce(
+      "reconnect-disabled",
       `⏸ <b>Реконнект не нужен</b>\n\n` +
         `Фарм выключен. Бот не будет заходить в Steam сам.\n\n` +
-        `📌 Причина: <code>${escapeHtml(reason)}</code>`
+        `📌 Причина: <code>${escapeHtml(reason)}</code>`,
+      60_000
     );
     return;
   }
 
   if (pausedByOtherSession || userIsProbablyPlaying) {
-    tg(
+    notifyOnce(
+      "reconnect-playing",
       `⏸ <b>Реконнект отложен</b>\n\n` +
         `🎮 Похоже, ты сейчас играешь.\n` +
         `🛡 Бот не будет спамить логинами.\n\n` +
-        `📌 Причина: <code>${escapeHtml(reason)}</code>`
+        `📌 Причина: <code>${escapeHtml(reason)}</code>`,
+      60_000
     );
     return;
   }
@@ -230,37 +240,47 @@ function scheduleReconnect(reason) {
   }, delay);
 }
 
-function scheduleReadyAfterPlaying() {
-  if (resumeTimer) clearTimeout(resumeTimer);
-
+function markPlayingAndDisableFarm(reason) {
   farmingEnabled = false;
+  userIsProbablyPlaying = true;
+  pausedByOtherSession = true;
+  lastKickTime = Date.now();
   stopFarming();
 
-  tg(
-    `🕊 <b>Игра / другая Steam-сессия обнаружена</b>\n\n` +
-      `Фарм выключен.\n` +
-      `Бот подождёт <b>${Math.round(RESUME_AFTER_PLAYING_MS / 60000)} мин.</b> и станет готов к командам.\n\n` +
-      `После этого фарм <b>не запустится сам</b>.\n` +
-      `Чтобы начать снова, напиши <code>/farm</code>.`
+  notifyOnce(
+    "playing-detected",
+    `🎮 <b>Обнаружена другая Steam-сессия</b>\n\n` +
+      `Фарм остановлен.\n` +
+      `Бот не будет запускаться сам.\n\n` +
+      `📌 Причина: <code>${escapeHtml(reason)}</code>\n\n` +
+      `Чтобы снова фармить после игры, напиши <code>/farm</code>.`,
+    60_000
   );
 
-  resumeTimer = setTimeout(() => {
-    resumeTimer = null;
+  scheduleReadyAfterPlaying();
+}
+
+function scheduleReadyAfterPlaying() {
+  if (readyTimer) clearTimeout(readyTimer);
+
+  readyTimer = setTimeout(() => {
+    readyTimer = null;
     userIsProbablyPlaying = false;
     pausedByOtherSession = false;
 
-    tg(
+    notifyOnce(
+      "ready-after-playing",
       `✅ <b>Бот снова готов</b>\n\n` +
         `Фарм выключен.\n` +
-        `Для запуска напиши <code>/farm</code>.`
+        `Для запуска напиши <code>/farm</code>.`,
+      60_000
     );
-  }, RESUME_AFTER_PLAYING_MS);
+  }, READY_AFTER_PLAYING_MS);
 }
 
 function farm(forceLog = false) {
   if (!canFarm()) return;
 
-  // сначала статус, потом игры — так Steam стабильнее показывает "in-game"
   client.setPersona(Number(PERSONA));
   client.gamesPlayed(games);
 
@@ -283,18 +303,22 @@ function login() {
   if (loggedIn || loggingIn) return;
 
   if (!farmingEnabled) {
-    tg(
+    notifyOnce(
+      "login-disabled",
       `⏸ <b>Вход в Steam не выполнен</b>\n\n` +
         `Фарм выключен.\n` +
-        `Чтобы начать, напиши <code>/farm</code>.`
+        `Чтобы начать, напиши <code>/farm</code>.`,
+      60_000
     );
     return;
   }
 
   if (pausedByOtherSession || userIsProbablyPlaying) {
-    tg(
+    notifyOnce(
+      "login-playing",
       `⏸ <b>Вход в Steam отменён</b>\n\n` +
-        `🎮 Ты сейчас играешь или бот ждёт после твоей игры.`
+        `🎮 Ты сейчас играешь или бот ждёт после твоей игры.`,
+      60_000
     );
     return;
   }
@@ -335,22 +359,13 @@ client.on("playingState", (blocked) => {
   pausedByOtherSession = blocked;
 
   if (blocked) {
-    farmingEnabled = false;
-    userIsProbablyPlaying = true;
-    lastKickTime = Date.now();
-    stopFarming();
-
-    tg(
-      `🎮 <b>Ты начал играть</b>\n\n` +
-        `⏹ Фарм остановлен.\n` +
-        `Бот не будет запускаться сам.\n\n` +
-        `Чтобы снова фармить после игры, напиши <code>/farm</code>.`
-    );
-
+    markPlayingAndDisableFarm("playingState: blocked");
     return;
   }
 
-  scheduleReadyAfterPlaying();
+  // blocked=false — это просто Steam сообщил, что блокировки нет.
+  // Не выключаем фарм и не пишем “игра завершена”.
+  pausedByOtherSession = false;
 });
 
 client.on("disconnected", (eresult, msg) => {
@@ -359,19 +374,9 @@ client.on("disconnected", (eresult, msg) => {
   const reason = String(msg || eresult || "unknown");
 
   if (reason.includes("LoggedInElsewhere")) {
-    farmingEnabled = false;
-    userIsProbablyPlaying = true;
-    pausedByOtherSession = true;
-    lastKickTime = Date.now();
-
-    tg(
-      `🎮 <b>Бот выкинут другой Steam-сессией</b>\n\n` +
-        `Это нормально, если ты сам запустил игру.\n` +
-        `⏹ Фарм остановлен.\n\n` +
-        `📌 Ошибка: <code>${escapeHtml(reason)}</code>`
-    );
-
-    scheduleReadyAfterPlaying();
+    loggedIn = false;
+    loggingIn = false;
+    markPlayingAndDisableFarm(reason);
     return;
   }
 
@@ -384,19 +389,9 @@ client.on("error", (err) => {
   const reason = String(err.message || err);
 
   if (reason.includes("LoggedInElsewhere")) {
-    farmingEnabled = false;
-    userIsProbablyPlaying = true;
-    pausedByOtherSession = true;
-    lastKickTime = Date.now();
-
-    tg(
-      `🎮 <b>Бот выкинут другой Steam-сессией</b>\n\n` +
-        `Это нормально, если ты сам запустил игру.\n` +
-        `⏹ Фарм остановлен.\n\n` +
-        `📌 Ошибка: <code>${escapeHtml(reason)}</code>`
-    );
-
-    scheduleReadyAfterPlaying();
+    loggedIn = false;
+    loggingIn = false;
+    markPlayingAndDisableFarm(reason);
     return;
   }
 
@@ -404,10 +399,12 @@ client.on("error", (err) => {
 });
 
 client.on("steamGuard", () => {
-  tg(
+  notifyOnce(
+    "steamguard",
     `⚠️ <b>Steam Guard запросил код</b>\n\n` +
       `Проверь переменную <code>SHARED_SECRET</code>.\n` +
-      `Она должна быть именно из поля <code>shared_secret</code> в maFile.`
+      `Она должна быть именно из поля <code>shared_secret</code> в maFile.`,
+    60_000
   );
 });
 
@@ -500,6 +497,11 @@ async function handleTelegramCommand(text, chatId) {
     pausedByOtherSession = false;
     lastKickTime = 0;
 
+    if (readyTimer) {
+      clearTimeout(readyTimer);
+      readyTimer = null;
+    }
+
     await tg(
       `🌾 <b>Фарм включён вручную</b>\n\n` +
         `🎮 Игры: <code>${escapeHtml(games.join(", "))}</code>`
@@ -564,7 +566,6 @@ setInterval(() => {
   pollTelegram();
 }, 3000);
 
-// важно: не читаем старые /farm после рестарта Railway
 initTelegramOffset();
 
 http
