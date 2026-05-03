@@ -1,4 +1,4 @@
-# 🌾 Steam Time Farm
+# Steam Time Farm
 
 A simple Steam hour farming bot that runs 24/7 on Railway.
 
@@ -10,7 +10,7 @@ play, and sends logs to Telegram.
 
 
 
-## ✨ Features
+## Features
 
 -   Farm hours in Steam games (AppID)
 -   Auto-login using Steam Guard (`shared_secret`)
@@ -22,7 +22,7 @@ play, and sends logs to Telegram.
 
 
 
-## ⚙️ Environment Variables
+## Environment Variables
 
 Set them in Railway → **Service → Variables**
 
@@ -36,18 +36,21 @@ Set them in Railway → **Service → Variables**
 | `SHARED_SECRET` | Steam Guard shared_secret from `.maFile` | `xxxxxxxx` |
 | `STEAM_DATA_DIR` | Session storage path (do not change) | `/data/SteamData` |
 | `PERSONA` | Steam status (1 = Online) | `1` |
-
-
-### Optional (Telegram)
-
-| Variable | Description | Example |
-|--------|------------|--------|
 | `TG_BOT_TOKEN` | Telegram bot token | `123456:ABC...` |
 | `TG_CHAT_ID` | Your Telegram chat ID | `123456789` |
 
+## Telegram Commands
 
+| Command | Action |
+|---|---|
+| `/farm` | Start farming |
+| `/stop` | Stop farming |
+| `/status` | Show bot status |
+| `/games` | Show current games |
+| `/setgames 730,440` | Change games |
+| `/help` | Show commands |
 
-## 🎮 Games Format
+## Games Format
 
 | Variable | Example |
 |----------|---------|
@@ -58,7 +61,7 @@ https://steamcommunity.com/app/240 → 240 = AppID
 
 
 
-## 🔑 Getting SHARED_SECRET
+## Getting SHARED_SECRET
 
 From `.maFile`:
 
@@ -70,7 +73,7 @@ Use only the value.
 
 
 
-## 🤖 Telegram Setup
+## Telegram Setup
 
 1.  Create bot via [@BotFather](https://telegram.me/BotFather)
 2.  Send /start
@@ -78,7 +81,7 @@ Use only the value.
 
 
 
-## 🚀 Deploy
+## Deploy
 
 1.  Push to GitHub
 2.  Deploy in [Railway](https://railway.com/)
@@ -87,13 +90,13 @@ Use only the value.
 
 
 
-## 💬 Behavior
+## Behavior
 
 bot farming → you play → bot stops
 you exit → bot waits → resumes
 
 
-## ❌ Common Issues
+## Common Issues
 
 1.  InvalidPassword → wrong login/password/secret
 2.  RateLimitExceeded → wait 30--60 min
