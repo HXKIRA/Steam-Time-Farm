@@ -88,12 +88,6 @@ Use only the value.
 
 
 
-## Behavior
-
-bot farming → you play → bot stops
-you exit → bot waits → resumes
-
-
 ## Common Issues
 
 1.  InvalidPassword → wrong login/password/secret
