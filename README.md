@@ -28,17 +28,27 @@ Set them in Railway → **Service → Variables**
 
 ### Required
 
-`ACCOUNT_NAME=your_steam_login\
-PASSWORD=your_steam_password\
-GAMES=730,440\
-SHARED_SECRET=xxxxxxxx\
-STEAM_DATA_DIR=/data/SteamData\
-PERSONA=1`
+## ⚙️ Environment Variables
+
+### Required
+
+| Variable | Description | Example |
+|--------|------------|--------|
+| `ACCOUNT_NAME` | Your Steam login (not nickname) | `your_steam_login` |
+| `PASSWORD` | Your Steam password | `your_steam_password` |
+| `GAMES` | AppIDs separated by comma | `730,440` |
+| `SHARED_SECRET` | Steam Guard shared_secret from `.maFile` | `xxxxxxxx` |
+| `STEAM_DATA_DIR` | Session storage path (do not change) | `/data/SteamData` |
+| `PERSONA` | Steam status (1 = Online) | `1` |
+
+---
 
 ### Optional (Telegram)
 
-`TG_BOT_TOKEN=your_bot_token\
-TG_CHAT_ID=your_chat_id`
+| Variable | Description | Example |
+|--------|------------|--------|
+| `TG_BOT_TOKEN` | Telegram bot token | `123456:ABC...` |
+| `TG_CHAT_ID` | Your Telegram chat ID | `123456789` |
 
 
 
