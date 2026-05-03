@@ -80,7 +80,9 @@ let retryTimer = null;
 let resumeTimer = null;
 let lastFarmLogAt = 0;
 let lastKickTime = 0;
-let tgOffset = 0;
+
+// null = сначала пропускаем старые Telegram-команды
+let tgOffset = null;
 
 const MIN_RETRY_MS = 15_000;
 const MAX_RETRY_MS = 10 * 60_000;
@@ -124,6 +126,35 @@ async function tg(message) {
     });
   } catch (err) {
     console.error("Telegram log failed:", err.message || err);
+  }
+}
+
+async function initTelegramOffset() {
+  if (!TG_BOT_TOKEN || !TG_CHAT_ID) return;
+
+  try {
+    const res = await fetch(
+      `https://api.telegram.org/bot${TG_BOT_TOKEN}/getUpdates`
+    );
+    const data = await res.json();
+
+    if (!data.ok || !Array.isArray(data.result)) {
+      tgOffset = 0;
+      return;
+    }
+
+    if (data.result.length === 0) {
+      tgOffset = 0;
+      return;
+    }
+
+    const lastUpdate = data.result[data.result.length - 1];
+    tgOffset = lastUpdate.update_id + 1;
+
+    console.log(`Telegram offset initialized: ${tgOffset}`);
+  } catch (err) {
+    tgOffset = 0;
+    console.error("Telegram offset init failed:", err.message || err);
   }
 }
 
@@ -229,8 +260,9 @@ function scheduleReadyAfterPlaying() {
 function farm(forceLog = false) {
   if (!canFarm()) return;
 
-  client.gamesPlayed(games);
+  // сначала статус, потом игры — так Steam стабильнее показывает "in-game"
   client.setPersona(Number(PERSONA));
+  client.gamesPlayed(games);
 
   const shouldLog =
     forceLog || Date.now() - lastFarmLogAt > FARM_LOG_COOLDOWN_MS;
@@ -487,6 +519,7 @@ async function handleTelegramCommand(text, chatId) {
 
 async function pollTelegram() {
   if (!TG_BOT_TOKEN || !TG_CHAT_ID) return;
+  if (tgOffset === null) return;
 
   try {
     const url =
@@ -531,7 +564,8 @@ setInterval(() => {
   pollTelegram();
 }, 3000);
 
-pollTelegram();
+// важно: не читаем старые /farm после рестарта Railway
+initTelegramOffset();
 
 http
   .createServer((req, res) => {
