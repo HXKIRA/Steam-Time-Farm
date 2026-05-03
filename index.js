@@ -16,9 +16,7 @@ const {
   STEAM_DATA_DIR = "./SteamData",
 } = process.env;
 
-const required = ["ACCOUNT_NAME", "PASSWORD", "GAMES", "SHARED_SECRET"];
-
-for (const key of required) {
+for (const key of ["ACCOUNT_NAME", "PASSWORD", "GAMES", "SHARED_SECRET"]) {
   if (!process.env[key]) {
     console.error(`Missing required env: ${key}`);
     process.exit(1);
@@ -42,9 +40,11 @@ const client = new SteamUser({
 let loggedIn = false;
 let loggingIn = false;
 let pausedByOtherSession = false;
+let userIsProbablyPlaying = false;
 
 let retryAttempt = 0;
 let retryTimer = null;
+let resumeTimer = null;
 let lastFarmLogAt = 0;
 
 const MIN_RETRY_MS = 15_000;
@@ -53,12 +53,18 @@ const FARM_INTERVAL_MS = 60_000;
 const WATCHDOG_INTERVAL_MS = 60_000;
 const FARM_LOG_COOLDOWN_MS = 10 * 60_000;
 
-function now() {
-  return new Date().toISOString();
+// задержка после твоей игры, чтобы бот не лез сразу
+const RESUME_AFTER_PLAYING_MS = 5 * 60_000;
+
+function nowRu() {
+  return new Date().toLocaleString("ru-RU", {
+    timeZone: "Asia/Aqtobe",
+    hour12: false,
+  });
 }
 
 async function tg(message) {
-  const text = `[${now()}]\n${message}`;
+  const text = `🕒 ${nowRu()}\n${message}`;
 
   console.log(text);
 
@@ -73,6 +79,7 @@ async function tg(message) {
       body: JSON.stringify({
         chat_id: TG_CHAT_ID,
         text: text.slice(0, 3900),
+        parse_mode: "HTML",
         disable_web_page_preview: true,
       }),
     });
@@ -96,15 +103,36 @@ function resetRetry() {
   }
 }
 
+function stopFarming() {
+  try {
+    client.gamesPlayed([]);
+  } catch (_) {}
+}
+
 function scheduleReconnect(reason) {
   if (retryTimer) return;
 
   loggedIn = false;
   loggingIn = false;
 
+  // ВАЖНО: если ты сейчас играешь — бот НЕ долбится в Steam
+  if (pausedByOtherSession || userIsProbablyPlaying) {
+    tg(
+      `⏸ <b>Реконнект отложен</b>\n\n` +
+        `🎮 Похоже, ты сейчас играешь.\n` +
+        `🛡 Бот не будет спамить логинами в Steam.\n\n` +
+        `📌 Причина: <code>${reason}</code>`
+    );
+    return;
+  }
+
   const delay = retryDelay();
 
-  tg(`🔁 Повторное подключение запланировано через ${Math.round(delay / 1000)}s\nПричина: ${reason}`);
+  tg(
+    `🔁 <b>Переподключение запланировано</b>\n\n` +
+      `⏳ Через: <b>${Math.round(delay / 1000)} сек.</b>\n` +
+      `📌 Причина: <code>${reason}</code>`
+  );
 
   retryTimer = setTimeout(() => {
     retryTimer = null;
@@ -112,12 +140,41 @@ function scheduleReconnect(reason) {
   }, delay);
 }
 
+function scheduleResumeAfterPlaying() {
+  if (resumeTimer) {
+    clearTimeout(resumeTimer);
+    resumeTimer = null;
+  }
+
+  tg(
+    `🕊 <b>Игра завершена</b>\n\n` +
+      `Бот подождёт <b>${Math.round(RESUME_AFTER_PLAYING_MS / 60000)} мин.</b>, ` +
+      `чтобы не выглядеть подозрительно для Steam.\n\n` +
+      `После паузы фарм восстановится автоматически.`
+  );
+
+  resumeTimer = setTimeout(() => {
+    resumeTimer = null;
+    userIsProbablyPlaying = false;
+    pausedByOtherSession = false;
+
+    tg(
+      `✅ <b>Пауза закончилась</b>\n\n` +
+        `Пробую восстановить фарм часов.`
+    );
+
+    if (!loggedIn && !loggingIn) {
+      login();
+      return;
+    }
+
+    farm(true);
+  }, RESUME_AFTER_PLAYING_MS);
+}
+
 function farm(forceLog = false) {
   if (!loggedIn) return;
-
-  if (pausedByOtherSession) {
-    return;
-  }
+  if (pausedByOtherSession || userIsProbablyPlaying) return;
 
   client.gamesPlayed(games);
   client.setPersona(Number(PERSONA));
@@ -127,23 +184,31 @@ function farm(forceLog = false) {
 
   if (shouldLog) {
     lastFarmLogAt = Date.now();
-    tg(`🌾 Farming active\nGames: ${games.join(", ")}`);
-  }
-}
 
-function stopFarming() {
-  try {
-    client.gamesPlayed([]);
-  } catch (_) {}
+    tg(
+      `🌾 <b>Фарм активен</b>\n\n` +
+        `🎮 Игры: <code>${games.join(", ")}</code>\n` +
+        `👤 Статус Steam: <code>${PERSONA}</code>`
+    );
+  }
 }
 
 function login() {
   if (loggedIn || loggingIn) return;
 
+  if (pausedByOtherSession || userIsProbablyPlaying) {
+    tg(
+      `⏸ <b>Вход в Steam отменён</b>\n\n` +
+        `🎮 Ты сейчас играешь или бот ждёт после твоей игры.\n` +
+        `Бот не будет перебивать твою сессию.`
+    );
+    return;
+  }
+
   loggingIn = true;
 
   try {
-    tg("🔐 Вход в Steam...");
+    tg(`🔐 <b>Вход в Steam...</b>`);
 
     client.logOn({
       accountName: ACCOUNT_NAME,
@@ -163,7 +228,12 @@ client.on("loggedOn", () => {
   loggingIn = false;
   resetRetry();
 
-  tg(`✅ Вошел в Steam как ${client.steamID}`);
+  tg(
+    `✅ <b>Steam подключён</b>\n\n` +
+      `🆔 Аккаунт: <code>${client.steamID}</code>\n` +
+      `🚀 Бот готов фармить часы.`
+  );
+
   farm(true);
 });
 
@@ -171,31 +241,77 @@ client.on("playingState", (blocked) => {
   pausedByOtherSession = blocked;
 
   if (blocked) {
+    userIsProbablyPlaying = true;
     stopFarming();
-    tg("🎮 Вы начали играть. Бот приостановил фарм.");
-  } else {
-    tg("✅ Ваша игровая сессия завершилась. Бот возобновляет фарм.");
-    farm(true);
+
+    tg(
+      `🎮 <b>Ты начал играть</b>\n\n` +
+        `⏸ Фарм остановлен.\n` +
+        `🛡 Бот не будет реконнектиться, пока ты играешь.`
+    );
+
+    return;
   }
+
+  scheduleResumeAfterPlaying();
 });
 
 client.on("disconnected", (eresult, msg) => {
   stopFarming();
-  scheduleReconnect(`disconnected: ${msg || eresult || "unknown"}`);
+
+  const reason = msg || eresult || "unknown";
+
+  if (reason === "LoggedInElsewhere" || String(reason).includes("LoggedInElsewhere")) {
+    userIsProbablyPlaying = true;
+
+    tg(
+      `🎮 <b>Steam сессия занята</b>\n\n` +
+        `Похоже, ты вошёл в Steam или запустил игру.\n` +
+        `⏸ Бот уходит в режим ожидания и не будет долбиться в логин.\n\n` +
+        `📌 Причина: <code>${reason}</code>`
+    );
+
+    scheduleResumeAfterPlaying();
+    return;
+  }
+
+  scheduleReconnect(`disconnected: ${reason}`);
 });
 
 client.on("error", (err) => {
   stopFarming();
-  scheduleReconnect(`error: ${err.message || err}`);
+
+  const reason = err.message || String(err);
+
+  if (reason.includes("LoggedInElsewhere")) {
+    userIsProbablyPlaying = true;
+
+    tg(
+      `🎮 <b>Бот выкинут другой Steam-сессией</b>\n\n` +
+        `Это нормально, если ты сам запустил игру.\n` +
+        `⏸ Реконнект отложен.\n\n` +
+        `📌 Ошибка: <code>${reason}</code>`
+    );
+
+    scheduleResumeAfterPlaying();
+    return;
+  }
+
+  scheduleReconnect(`error: ${reason}`);
 });
 
 client.on("steamGuard", () => {
-  tg("⚠️ Запрос на использование Steam Guard. Проверьте ваш SHARED_SECRET.");
+  tg(
+    `⚠️ <b>Steam Guard запросил код</b>\n\n` +
+      `Проверь переменную:\n` +
+      `<code>SHARED_SECRET</code>\n\n` +
+      `Она должна быть именно из поля <code>shared_secret</code> в maFile.`
+  );
 });
 
 setInterval(() => {
-  if (!loggedIn && !loggingIn) {
-    scheduleReconnect("watchdog: not logged in");
+  if (!loggedIn && !loggingIn && !pausedByOtherSession && !userIsProbablyPlaying) {
+    scheduleReconnect("watchdog: bot is not logged in");
   }
 }, WATCHDOG_INTERVAL_MS);
 
@@ -217,12 +333,17 @@ http
         loggedIn,
         loggingIn,
         pausedByOtherSession,
+        userIsProbablyPlaying,
         games,
         retryAttempt,
-        time: now(),
+        time: nowRu(),
       })
     );
   })
   .listen(PORT, () => {
-    tg(`🚀 Сервер проверки работоспособности запущен на порту ${PORT}`);
+    tg(
+      `🚀 <b>Бот запущен</b>\n\n` +
+        `🌐 Healthcheck порт: <code>${PORT}</code>\n` +
+        `📦 Railway контейнер активен.`
+    );
   });
