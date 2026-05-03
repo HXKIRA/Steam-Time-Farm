@@ -14,9 +14,7 @@ play, and sends logs to Telegram.
 
 -   Farm hours in Steam games (AppID)
 -   Auto-login using Steam Guard (`shared_secret`)
--   Auto-reconnect
--   Stops when you start playing
--   Waits before reconnecting (safe behavior)
+-   Manual farming control via Telegram
 -   Telegram logs
 -   Ready for Railway
 
