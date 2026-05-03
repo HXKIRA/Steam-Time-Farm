@@ -1,4 +1,4 @@
-# 🌾 Steam Hour Farmer (Railway)
+# 🌾 Steam Time Farm
 
 A simple Steam hour farming bot that runs 24/7 on Railway.
 
