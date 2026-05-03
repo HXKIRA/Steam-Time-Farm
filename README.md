@@ -51,7 +51,7 @@ Set them in Railway → **Service → Variables**
 
 | Variable | Example |
 |----------|---------|
-| GAMES    | 730,440 |
+| `GAMES`    | `730,440` |
 
 How to find AppID:
 https://steamcommunity.com/app/240 → 240 = AppID
