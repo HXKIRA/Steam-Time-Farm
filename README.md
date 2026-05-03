@@ -49,9 +49,9 @@ Set them in Railway → **Service → Variables**
 
 ## 🎮 Games Format
 
-`GAMES=730,440,4000`
+| `GAMES` | `730,440,4000` |
 
-How to find AppID:\
+How to find AppID:
 https://steamcommunity.com/app/240 → 240 = AppID
 
 
@@ -70,10 +70,9 @@ Use only the value.
 
 ## 🤖 Telegram Setup
 
-1.  Create bot via @BotFather\
-2.  Send /start\
-3.  Get chat ID via:\
-    https://api.telegram.org/botYOUR_TOKEN/getUpdates
+1.  Create bot via [@BotFather](https://telegram.me/BotFather)
+2.  Send /start
+3.  [Get chat ID](https://t.me/getmyid_bot)
 
 
 
@@ -88,15 +87,13 @@ Use only the value.
 
 ## 💬 Behavior
 
-bot farming → you play → bot stops\
+bot farming → you play → bot stops
 you exit → bot waits → resumes
 
 
 ## ❌ Common Issues
 
-InvalidPassword → wrong login/password/secret\
-RateLimitExceeded → wait 30--60 min\
+InvalidPassword → wrong login/password/secret
+RateLimitExceeded → wait 30--60 min
 No logs → check token/chat_id
-
-Test: https://api.telegram.org/botTOKEN/getMe
 
