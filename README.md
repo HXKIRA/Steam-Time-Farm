@@ -49,7 +49,9 @@ Set them in Railway → **Service → Variables**
 
 ## 🎮 Games Format
 
-| `GAMES` | `730,440,4000` |
+| Variable | Example |
+|----------|---------|
+| GAMES    | 730,440 |
 
 How to find AppID:
 https://steamcommunity.com/app/240 → 240 = AppID
