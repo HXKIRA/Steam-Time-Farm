@@ -95,7 +95,7 @@ you exit → bot waits → resumes
 
 ## ❌ Common Issues
 
-InvalidPassword → wrong login/password/secret
-RateLimitExceeded → wait 30--60 min
-No logs → check token/chat_id
+1.  InvalidPassword → wrong login/password/secret
+2.  RateLimitExceeded → wait 30--60 min
+3.  No logs → check token/chat_id
 
