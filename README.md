@@ -8,7 +8,6 @@ play, and sends logs to Telegram.
 > ⚠️ Use at your own risk. It's recommended to use a secondary Steam
 > account.
 
-------------------------------------------------------------------------
 
 ## ✨ Features
 
@@ -20,7 +19,6 @@ play, and sends logs to Telegram.
 -   Telegram logs
 -   Ready for Railway
 
-------------------------------------------------------------------------
 
 ## ⚙️ Environment Variables
 
@@ -40,7 +38,6 @@ PERSONA=1
 TG_BOT_TOKEN=your_bot_token\
 TG_CHAT_ID=your_chat_id
 
-------------------------------------------------------------------------
 
 ## 🎮 Games Format
 
@@ -49,7 +46,6 @@ GAMES=730,440,4000
 How to find AppID:\
 https://steamcommunity.com/app/240 → 240 = AppID
 
-------------------------------------------------------------------------
 
 ## 🔑 Getting SHARED_SECRET
 
@@ -62,7 +58,6 @@ Use only the value.
 Guide:
 https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-sozdan
 
-------------------------------------------------------------------------
 
 ## 🤖 Telegram Setup
 
@@ -71,24 +66,20 @@ https://vk.com/@vboost1-nastroika-steamdesktopauthenticator-dlya-uproscheniya-so
 3.  Get chat ID via:\
     https://api.telegram.org/botYOUR_TOKEN/getUpdates
 
-------------------------------------------------------------------------
 
 ## 🚀 Deploy
 
 1.  Push to GitHub\
 2.  Deploy in Railway\
 3.  Add variables\
-4.  Add volume: /data\
-5.  Redeploy
+4.  Redeploy
 
-------------------------------------------------------------------------
 
 ## 💬 Behavior
 
 bot farming → you play → bot stops\
 you exit → bot waits → resumes
 
-------------------------------------------------------------------------
 
 ## ❌ Common Issues
 
@@ -98,7 +89,6 @@ No logs → check token/chat_id
 
 Test: https://api.telegram.org/botTOKEN/getMe
 
-------------------------------------------------------------------------
 
 ## 🔒 Security
 
